@@ -1,6 +1,6 @@
 
 ---
-title: "Reproducible Research - PA1 - Activity Monitoring Data - MD"
+title: "Reproducible Research - PA1 - Activity Monitoring Data"
 output: html_document
 ---
 
