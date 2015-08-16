@@ -1,25 +1,134 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research - PA1 - Activity Monitoring Data"
+output: html_document
 ---
 
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-## Loading and preprocessing the data
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+---
+##Loading and preprocessing the data  
+1. **Loading the data**
+
+```{r}
+rdata <- read.csv("activity.csv",stringsAsFactors=FALSE)
+
+```
+2. **Formatting the data to omit na and factor date**
+
+```{r}
+adata <- na.omit(rdata)
+adata$date <- as.factor(as.character(adata$date))
+```
+
+##Total number of steps taken per day
+1.**Create data for total number of Steps Taken**
+```{r}
+dqa <- tapply(adata$steps, adata$date, sum, na.rm = TRUE)
+dq1a <- cbind.data.frame(date = names(dqa),totalsteps = unname(dqa))
+
+```
+
+2. **Plot for Frequency of Steps**
+```{r, echo=FALSE}
+hist(dq1a[,2], xlab = "Total Steps Per Day", ylab = "Number of Days", main = "Frequency of Total Steps in a day", col = "green")  
+```  
+
+3.**Calculate Mean and Median**
+```{r}
+meansteps <- mean(dq1a$totalsteps, na.rm = TRUE)
+mediansteps <- median(dq1a$totalsteps, na.rm = TRUE)
+print(sprintf("Mean total steps taken per day: %f ", meansteps))
+print(sprintf("Median total steps taken per day: %f ", mediansteps))
+```  
 
 
+##Average daily activity pattern
+1. **Getting Data for Time Series**
+```{r}
+dqa <- tapply(adata$steps, adata$interval, mean,na.rm = TRUE)
+dq2a <- cbind.data.frame(interval = as.integer(names(dqa)),avgsteps = unname(dqa))
+```  
 
-## What is mean total number of steps taken per day?
+**Time Series plot**
+ 
+```{r, echo=FALSE}
+plot(dq2a$interval, dq2a$avgsteps, type = "l", xlab = "5-min Interval", ylab = "Average Num of Steps", main = "Average Daily Activity Pattern")
+```   
+
+2. **Maximum number of steps - for 5 min interval range**
+```{r}
+maxavginterval <- dq2a$interval[dq2a$avgsteps == max(dq2a$avgsteps)]
+print(sprintf("5-min time Interval with maximum average steps taken per day: %i ", maxavginterval)) 
+``` 
+
+##Imputing missing values
+1. **Total Number of Missing Values**
+```{r}
+nacount <- nrow(rdata[!complete.cases(rdata),])
+print(sprintf("Row count with NA data: %i ", nacount))
+``` 
+
+2.**Filling in missing value Strategy**
+```{r}
+ndata <- rdata 
+sapply(unique(rdata$interval), 
+      function(x) 
+      ndata[!complete.cases(ndata) & (ndata$interval == x),1] <<- dq2a$avgsteps[dq2a$interval == x])
+```  
+3.**New Data Set with filled value**
+```{r}
+dqc <- tapply(ndata$steps, ndata$date, sum, na.rm = TRUE)
+dq1c <- cbind.data.frame(date = names(dqc),totalsteps = unname(dqc))
+
+```  
+
+4. * New Plot with filled value*  
+```{r, echo=FALSE}
+
+hist(dq1c[,2], xlab = "Total Steps Per Day", ylab = "Number of Days", main = "Frequency of Total Steps in a day", col = "blue") 
+
+``` 
+**New mean and median calculation with filled value**
+```{r}
+meansteps <- mean(dq1c$totalsteps) 
+mediansteps <- median(dq1c$totalsteps)
+print(sprintf("Mean total steps taken per day: %f ", meansteps))
+print(sprintf("Median total steps taken per day: %f ", mediansteps))
+
+```  
 
 
+##Differences in activity pattersn weekdays and weekends  
+1. **Create new dataset**
+```{r}
+wd <- weekdays(as.Date(ndata$date))
+ndata$dayTypes <- factor(wd, levalns <- c('weekday', 'weekend'))
+ndata$dayTypes[] <- 'weekday'
+ndata$dayTypes[wd %in% c('saturday', 'Sunday')] <- 'weekend'
 
-## What is the average daily activity pattern?
+library (plyr)
+library (lattice)
+
+dq3a <- ddply(ndata,
+             .(interval, dayTypes),
+             summarise,
+             avgSteps = mean(steps, na.rm=TRUE))
 
 
+```  
 
-## Imputing missing values
+2. **Comparison Plot**  
+
+```{r, echo=FALSE}
+xyplot(avgSteps ~ interval | dayTypes, 
+       data = dq3a,
+       type = 'l',
+       layout = c(1,2),
+       ylab = "Average number of steps")
+
+``` 
 
 
-
-## Are there differences in activity patterns between weekdays and weekends?
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
